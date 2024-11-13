@@ -25,7 +25,7 @@ $(function () {
     $form.on("submit", (event) => {
         event.preventDefault();
         var data = getFormData($form);
-        var holders = data.Holder.split("\r\n");
+        var holders = data.Holder.replace('\t', '').split("\r\n");
         var tempNos = BuildNos(data.LastNo)
         var dataArr = [];
         for (var single in holders) {
@@ -33,7 +33,7 @@ $(function () {
                 "LastNo": tempNos,
                 "Date": data.Date,
                 "Holder": holders[single],
-                "Reason": data.Reason,
+                "Reason": data.Reason.replace('\t', ''),
                 "Price": data.Price,
                 "Total": data.Total,
                 "No": tempNos
