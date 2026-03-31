@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ricevute 2.0</title>
+    <link rel="shortcut icon" type="image/x-icon" href="../Images/favicon.ico">
+    <link rel="stylesheet" href="https://kit-free.fontawesome.com/releases/latest/css/free.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
+        integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.18.3/dist/bootstrap-table.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="site-v2.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js"
+        integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.18.3/dist/bootstrap-table.min.js"></script>
+    <script src="../JS/jszip.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ===== Header ===== -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="header-content">
+                <h1 class="header-title">Genera Ricevute</h1>
+                <span class="version-badge">2.0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+
+        <!-- ===== Signature Notice (shown when no signature) ===== -->
+        <div class="signature-notice" id="signatureNotice" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Non hai ancora una firma salvata! Aprila e firmane una prima di generare ricevute.</span>
+        </div>
+
+        <!-- ===== Signature Section ===== -->
+        <section class="v2-card">
+            <div class="v2-card-header collapsible" data-toggle="collapse" href="#signatureBody" aria-expanded="false">
+                <h2 class="v2-card-title">
+                    <i class="fas fa-pen-fancy"></i> Firma
+                </h2>
+                <i class="fas fa-chevron-down v2-card-chevron"></i>
+            </div>
+            <div class="collapse" id="signatureBody">
+                <div class="v2-card-body">
+                    <p class="text-muted-v2">
+                        Le ricevute devono essere firmate. Firma qui sotto o
+                        <label class="import-label" for="ImportExistingSignature">importa una firma
+                            esistente</label>.
+                    </p>
+                    <div class="signature-wrapper">
+                        <canvas id="signature-pad" class="signature-pad" width="500" height="100"></canvas>
+                    </div>
+                    <div class="signature-actions">
+                        <button type="button" class="btn-outline-v2" onclick="ClearSignaturePad()">
+                            <i class="fas fa-eraser"></i> Pulisci
+                        </button>
+                        <button type="button" class="btn-primary-v2" onclick="SaveSignature()">
+                            <i class="fas fa-save"></i> Salva Firma
+                        </button>
+                    </div>
+                    <input type="file" id="ImportExistingSignature" name="ImportExistingSignature" hidden
+                        style="position: absolute; display: none;" />
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== New Receipt Form ===== -->
+        <section class="v2-card">
+            <div class="v2-card-header">
+                <h2 class="v2-card-title">
+                    <i class="fas fa-plus-circle"></i> Nuova Ricevuta
+                </h2>
+            </div>
+            <div class="v2-card-body">
+                <form id="receiptsForm" action="post">
+                    <div class="form-grid">
+                        <div class="form-left">
+                            <div class="form-row-v2">
+                                <div class="form-group-v2">
+                                    <label for="LastNo">Nr.</label>
+                                    <input type="text" class="input-v2" placeholder="Es: E-01" name="LastNo"
+                                        autocomplete="off">
+                                </div>
+                                <div class="form-group-v2">
+                                    <label for="Date">Data</label>
+                                    <input type="text" class="input-v2" id="datepicker" placeholder="gg/mm/aaaa"
+                                        name="Date" autocomplete="off" required>
+                                </div>
+                            </div>
+                            <div class="form-group-v2">
+                                <label for="Reason">Causale</label>
+                                <input type="text" class="input-v2" placeholder="Es: Quota associativa" name="Reason"
+                                    autocomplete="off" required>
+                            </div>
+                            <div class="form-group-v2">
+                                <label for="Total">Importo (in cifre)</label>
+                                <input type="number" class="input-v2" placeholder="0.00" name="Total" autocomplete="off"
+                                    required step="any">
+                            </div>
+                            <div class="form-group-v2">
+                                <label for="Price">Importo (in lettere)</label>
+                                <input type="text" class="input-v2 input-readonly"
+                                    placeholder="Calcolato automaticamente" name="Price" autocomplete="off" required
+                                    readonly>
+                            </div>
+                        </div>
+                        <div class="form-right">
+                            <div class="form-group-v2 full-height">
+                                <label for="Holder">Ricevuti da (uno per riga)</label>
+                                <textarea class="input-v2 textarea-v2"
+                                    placeholder="Mario Rossi&#10;Luigi Bianchi&#10;Anna Verdi" name="Holder"
+                                    autocomplete="off" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-success-v2">
+                            <i class="fas fa-plus"></i> Aggiungi Ricevuta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===== Saved Receipts ===== -->
+        <section class="v2-card">
+            <div class="v2-card-header">
+                <h2 class="v2-card-title">
+                    <i class="fas fa-list-alt"></i> Ricevute Salvate
+                    <span class="receipt-count empty" id="receiptCount">0</span>
+                </h2>
+            </div>
+            <div class="v2-card-body">
+                <div class="action-bar" id="toolbar">
+                    <button type="button" class="btn-primary-v2" id="printReceipts">
+                        <i class="fas fa-print"></i> Stampa Ricevute
+                    </button>
+                    <button type="button" class="btn-accent-v2" id="CopyExcel">
+                        <i class="fas fa-copy"></i> Copia per Excel
+                    </button>
+                </div>
+                <table id="receiptsTbl">
+                    <thead>
+                        <tr>
+                            <th data-field="No" data-editable="true">Nr.</th>
+                            <th data-field="Date" data-editable="true">Data</th>
+                            <th data-field="Holder" data-editable="true">Ricevuti da</th>
+                            <th data-field="Price" data-editable="true">Prezzo</th>
+                            <th data-field="Reason" data-editable="true">Causale</th>
+                            <th data-field="Total" data-editable="true">Totale</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===== Help Section ===== -->
+        <section class="v2-card help-card">
+            <div class="v2-card-header collapsible" data-toggle="collapse" href="#helpBody" aria-expanded="false">
+                <h2 class="v2-card-title">
+                    <i class="fas fa-question-circle"></i> Come funziona?
+                </h2>
+                <i class="fas fa-chevron-down v2-card-chevron"></i>
+            </div>
+            <div class="collapse" id="helpBody">
+                <div class="v2-card-body">
+                    <p><strong>1. Controlla la firma</strong></p>
+                    <p>
+                        Clicca su <strong>"Firma"</strong> per aprire il pannello. Puoi firmare a mano libera o
+                        importare un'immagine della tua firma. Clicca <strong>"Salva Firma"</strong> per salvarla
+                        nel browser &mdash; sar&agrave; ricordata anche per le prossime volte.
+                    </p>
+
+                    <p><strong>2. Compila il modulo</strong></p>
+                    <ul>
+                        <li><strong>Nr:</strong> Il numero da cui partire per numerare le ricevute.
+                            <em>Novit&agrave;: puoi usare prefissi come E-01, verr&agrave; trasformato in E-00001
+                                e incrementato automaticamente.</em>
+                        </li>
+                        <li><strong>Data:</strong> La data della ricevuta.</li>
+                        <li><strong>Ricevuti da:</strong> Inserisci un nome per riga. Verr&agrave; creata una
+                            ricevuta per ciascun nome.</li>
+                        <li><strong>Causale:</strong> Il motivo del pagamento.</li>
+                        <li><strong>Importo:</strong> L'importo in cifre (quello in lettere si calcola in automatico).
+                        </li>
+                    </ul>
+
+                    <p><strong>3. Genera e Stampa</strong></p>
+                    <p>
+                        Clicca <strong>"Aggiungi Ricevuta"</strong> per salvare nella tabella. Puoi aggiungerne
+                        quante ne vuoi. Quando hai finito, clicca <strong>"Stampa Ricevute"</strong> per scaricare
+                        tutte le ricevute come immagini in un file ZIP.
+                    </p>
+
+                    <p><strong>4. Copia per Excel</strong></p>
+                    <div class="help-highlight">
+                        <strong>Formato colonne:</strong> Data &rarr; Nr &rarr; Ricevuti da &rarr; Quota &rarr;
+                        Causale &rarr; Importo<br>
+                        Clicca <strong>"Copia per Excel"</strong>, poi incolla con <strong>Ctrl+V</strong> nel tuo
+                        foglio.
+                    </div>
+
+                    <div class="help-warning">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Nessun dato viene salvato online.</strong> Aggiornando la pagina tutte le ricevute
+                        generate verranno perse. La firma &egrave; salvata solo nel browser.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ===== Toast Container ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ===== Hidden Receipt Template (for image generation) ===== -->
+    <div id="template" style="display: none;">
+        <div class="Content" data-id="{{No}} - {{Holder}}"
+            style="width: 1920px; height: 500px; font-family: 'Segoe UI', Arial, sans-serif; background: #fff; position: relative; box-sizing: border-box;">
+            <!-- Top accent bar -->
+            <div style="height: 6px; background: linear-gradient(90deg, #2d6a4f, #40916c, #52b788);"></div>
+            <!-- Header -->
+            <div style="display: flex; align-items: center; padding: 20px 40px 16px; border-bottom: 2px solid #e9ecef;">
+                <img src="../Images/Cngei_Sezioni48.png" width="80" height="80" crossorigin="use-credentials"
+                    style="margin-right: 24px;">
+                <div style="flex: 1;">
+                    <div style="font-size: 22px; font-weight: 700; color: #1a1a2e; letter-spacing: 0.5px;">CNGEI Sezione
+                        Scout di Torino APS</div>
+                    <div style="font-size: 13px; color: #6c757d; margin-top: 4px;">Via Reiss Romoli, 49 &mdash; 10148
+                        Torino &nbsp;&bull;&nbsp; C.F. 97583440017</div>
+                </div>
+                <div style="text-align: right;">
+                    <div
+                        style="font-size: 13px; color: #6c757d; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+                        Ricevuta n.</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #2d6a4f; letter-spacing: 1px;">{{No}}</div>
+                </div>
+            </div>
+            <!-- Body -->
+            <div style="display: flex; padding: 20px 40px; gap: 0;">
+                <!-- Left: fields -->
+                <div style="flex: 1;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td
+                                style="padding: 8px 16px 8px 0; font-size: 14px; color: #6c757d; font-weight: 600; width: 130px; vertical-align: top;">
+                                Ricevuti da</td>
+                            <td
+                                style="padding: 8px 0; font-size: 16px; color: #1a1a2e; font-weight: 500; border-bottom: 1px solid #e9ecef;">
+                                {{Holder}}</td>
+                        </tr>
+                        <tr>
+                            <td
+                                style="padding: 8px 16px 8px 0; font-size: 14px; color: #6c757d; font-weight: 600; vertical-align: top;">
+                                Data</td>
+                            <td
+                                style="padding: 8px 0; font-size: 16px; color: #1a1a2e; border-bottom: 1px solid #e9ecef;">
+                                {{Date}}</td>
+                        </tr>
+                        <tr>
+                            <td
+                                style="padding: 8px 16px 8px 0; font-size: 14px; color: #6c757d; font-weight: 600; vertical-align: top;">
+                                Importo in lettere</td>
+                            <td
+                                style="padding: 8px 0; font-size: 16px; color: #1a1a2e; font-style: italic; border-bottom: 1px solid #e9ecef;">
+                                {{Price}}</td>
+                        </tr>
+                        <tr>
+                            <td
+                                style="padding: 8px 16px 8px 0; font-size: 14px; color: #6c757d; font-weight: 600; vertical-align: top;">
+                                Causale</td>
+                            <td
+                                style="padding: 8px 0; font-size: 16px; color: #1a1a2e; border-bottom: 1px solid #e9ecef;">
+                                {{Reason}}</td>
+                        </tr>
+                    </table>
+                </div>
+                <!-- Right: total + signature -->
+                <div
+                    style="width: 380px; margin-left: 40px; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div
+                        style="background: #f0fdf4; border: 2px solid #2d6a4f; border-radius: 10px; padding: 16px 24px; text-align: center;">
+                        <div
+                            style="font-size: 12px; color: #6c757d; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+                            Totale</div>
+                        <div style="font-size: 36px; font-weight: 700; color: #2d6a4f; margin-top: 4px;">&euro;
+                            {{Total}}</div>
+                    </div>
+                    <div style="text-align: center; margin-top: 12px;">
+                        <div
+                            style="font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+                            Firma</div>
+                        <img id="ReceiptSignature" height="50" width="280" style="display: block; margin: 0 auto;">
+                    </div>
+                </div>
+            </div>
+            <!-- Footer -->
+            <div
+                style="position: absolute; bottom: 0; left: 0; right: 0; padding: 10px 40px; background: #f8f9fa; border-top: 1px solid #e9ecef; font-size: 11px; color: #adb5bd;">
+                Esente da bollo ai sensi dell'art. 82 co.5 D.Lgs. 117/2017
+            </div>
+        </div><br>
+    </div>
+
+    <div id="all"></div>
+    <div id="out_image" hidden>
+        <div id="Links"></div>
+    </div>
+
+    <!-- ===== Scripts ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script>
+    <script src="../JS/dom-to-image.min.js"></script>
+    <script src="../JS/NumToWord.js"></script>
+    <script src="script-v2.js"></script>
+
+</body>
+
+</html>
